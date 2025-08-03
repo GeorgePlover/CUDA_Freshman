@@ -5,7 +5,7 @@
 
 void sumArrays(float * a,float * b,float * res,const int size)
 {
-  for(int i=0;i<size;i+=4)
+  for(int i=0;i<size;i+=4) // CPU实现
   {
     res[i]=a[i]+b[i];
     res[i+1]=a[i+1]+b[i+1];
@@ -16,7 +16,7 @@ void sumArrays(float * a,float * b,float * res,const int size)
 __global__ void sumArraysGPU(float*a,float*b,float*res)
 {
   //int i=threadIdx.x;
-  int i=blockIdx.x*blockDim.x+threadIdx.x;
+  int i=blockIdx.x*blockDim.x+threadIdx.x; // index 从  0~dim-1 
   res[i]=a[i]+b[i];
 }
 int main(int argc,char **argv)
@@ -35,12 +35,12 @@ int main(int argc,char **argv)
   memset(res_from_gpu_h,0,nByte);
 
   float *a_d,*b_d,*res_d;
-  CHECK(cudaMalloc((float**)&a_d,nByte));
-  CHECK(cudaMalloc((float**)&b_d,nByte));
+  CHECK(cudaMalloc((float**)&a_d,nByte)); // CHECK来自freshman.h，可以输出错误信息
+  CHECK(cudaMalloc((float**)&b_d,nByte)); // cudaMalloc 等，来自cudu_runtime_api
   CHECK(cudaMalloc((float**)&res_d,nByte));
 
-  initialData(a_h,nElem);
-  initialData(b_h,nElem);
+  initialData(a_h,nElem); // 初始化加法输入数组，随机生成
+  initialData(b_h,nElem); // 初始化加法输入数组，随机生成
 
   CHECK(cudaMemcpy(a_d,a_h,nByte,cudaMemcpyHostToDevice));
   CHECK(cudaMemcpy(b_d,b_h,nByte,cudaMemcpyHostToDevice));
@@ -53,7 +53,7 @@ int main(int argc,char **argv)
   CHECK(cudaMemcpy(res_from_gpu_h,res_d,nByte,cudaMemcpyDeviceToHost));
   sumArrays(a_h,b_h,res_h,nElem);
 
-  checkResult(res_h,res_from_gpu_h,nElem);
+  checkResult(res_h,res_from_gpu_h,nElem); // epsilon = 1e-8
   cudaFree(a_d);
   cudaFree(b_d);
   cudaFree(res_d);

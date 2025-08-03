@@ -20,12 +20,30 @@ __global__ void sumArraysGPU(float*a,float*b,float*res,int N)
   if(i < N)
     res[i]=a[i]+b[i];
 }
+
+void sumArrayTimeTest(int grid_dim, int block_dim, int N,
+  float* a_d, float* b_d, float* res_d, float* res_from_gpu_h, float* res_cpu) {
+    dim3 block(block_dim);
+    dim3 grid(grid_dim);
+
+    //timer
+    double iStart,iElaps;
+    iStart=cpuSecond();
+    sumArraysGPU<<<grid,block>>>(a_d,b_d,res_d,N); // 调用核函数
+    size_t nByte = sizeof(float) * N;
+
+    CHECK(cudaMemcpy(res_from_gpu_h,res_d,nByte,cudaMemcpyDeviceToHost)); // 拷贝回，隐式同步
+    iElaps=cpuSecond()-iStart;
+    printf("Execution configuration<<<%d,%d>>> Time elapsed %f sec\n",grid.x,block.x,iElaps);
+
+    checkResult(res_cpu,res_from_gpu_h,N);
+}
 int main(int argc,char **argv)
 {
   // set up device
   initDevice(0);
 
-  int nElem=1<<24;
+  int nElem=(1<<24) + 1;
   printf("Vector size:%d\n",nElem);
   int nByte=sizeof(float)*nElem;
   float *a_h=(float*)malloc(nByte);
@@ -46,22 +64,16 @@ int main(int argc,char **argv)
   CHECK(cudaMemcpy(a_d,a_h,nByte,cudaMemcpyHostToDevice));
   CHECK(cudaMemcpy(b_d,b_h,nByte,cudaMemcpyHostToDevice));
 
-  dim3 block(512);
-  dim3 grid((nElem-1)/block.x+1);
-
-  //timer
-  double iStart,iElaps;
-  iStart=cpuSecond();
-  sumArraysGPU<<<grid,block>>>(a_d,b_d,res_d,nElem);
-  
-  
-
-  CHECK(cudaMemcpy(res_from_gpu_h,res_d,nByte,cudaMemcpyDeviceToHost));
-  iElaps=cpuSecond()-iStart;
-  printf("Execution configuration<<<%d,%d>>> Time elapsed %f sec\n",grid.x,block.x,iElaps);
   sumArrays(a_h,b_h,res_h,nElem);
 
-  checkResult(res_h,res_from_gpu_h,nElem);
+  int block_dims[] = {64, 64, 128, 256, 512, 1024};
+  for (int i = 0;i < 6;i++){
+    int block_dim = block_dims[i];
+    int grid_dim = (nElem - 1) / block_dim + 1;
+    sumArrayTimeTest(grid_dim, block_dim, nElem,
+      a_d, b_d, res_d, res_from_gpu_h, res_h);
+  }
+  
   cudaFree(a_d);
   cudaFree(b_d);
   cudaFree(res_d);
