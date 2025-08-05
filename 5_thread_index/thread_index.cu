@@ -14,14 +14,14 @@ __global__ void printThreadIndex(float *A,const int nx,const int ny)
 int main(int argc,char** argv)
 {
   initDevice(0);
-  int nx=8,ny=6;
-  int nxy=nx*ny;
+  int nx=8,ny=6; // nx 表示矩阵的列数，ny 表示行数量
+  int nxy=nx*ny; 
   int nBytes=nxy*sizeof(float);
 
   //Malloc
   float* A_host=(float*)malloc(nBytes);
   initialData(A_host,nxy);
-  printMatrix(A_host,nx,ny);
+  printMatrix(A_host,nx,ny); // 吐槽：习惯x作为行号了，导致有点不适应
 
   //cudaMalloc
   float *A_dev=NULL;
