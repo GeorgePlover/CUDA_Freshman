@@ -68,6 +68,14 @@ __global__ void mathKernel3(float *c)
 	}
 	c[tid] = a + b;
 }
+__global__ void mathKernel4(float *c)
+{
+	int tid = blockIdx.x* blockDim.x + threadIdx.x;
+	float a = 100.0f;
+	float b = 200.0f;
+	int logic = tid&1;
+	c[tid] = b*logic + a*(1^logic);
+}
 
 int main(int argc, char **argv)
 {
@@ -128,6 +136,13 @@ int main(int argc, char **argv)
 	cudaDeviceSynchronize();
 	iElaps = cpuSecond() - iStart;
 	printf("mathKernel3<<<%4d,%4d>>>elapsed %lf sec \n", grid.x, block.x, iElaps);
+
+	//run kernel 4
+	iStart = cpuSecond();
+	mathKernel4 << <grid, block >> > (C_dev);
+	cudaDeviceSynchronize();
+	iElaps = cpuSecond() - iStart;
+	printf("mathKernel4<<<%4d,%4d>>>elapsed %lf sec \n", grid.x, block.x, iElaps);
 
 	cudaFree(C_dev);
 	free(C_host);
